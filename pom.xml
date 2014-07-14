@@ -24,6 +24,11 @@
 			<version>${fiji-lib.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>${jama.groupId}</groupId>
+			<artifactId>jama</artifactId>
+			<version>${jama.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
