@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 /**
  * Use the difference to a Gaussian blurred version of the image as

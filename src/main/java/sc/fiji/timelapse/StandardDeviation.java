@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 public class StandardDeviation {
 	protected double x, x2, count;

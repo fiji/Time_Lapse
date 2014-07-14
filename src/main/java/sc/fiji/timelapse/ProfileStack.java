@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 import ij.ImagePlus;
 import ij.ImageStack;

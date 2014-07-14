@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 public class LinearRegression {
 	protected boolean calculated;

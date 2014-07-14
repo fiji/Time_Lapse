@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 import fiji.tool.AbstractTrackingTool;
 import fiji.tool.ToolWithOptions;

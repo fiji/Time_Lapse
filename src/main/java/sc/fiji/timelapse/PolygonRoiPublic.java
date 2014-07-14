@@ -1,4 +1,4 @@
-package soroldoni;
+package sc.fiji.timelapse;
 
 /**
  * This class makes a few things public that aren't public in PolygonRoi
