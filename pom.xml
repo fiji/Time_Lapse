@@ -22,12 +22,10 @@
 		<dependency>
 			<groupId>sc.fiji</groupId>
 			<artifactId>fiji-lib</artifactId>
-			<version>${fiji-lib.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>${jama.groupId}</groupId>
+			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
-			<version>${jama.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
