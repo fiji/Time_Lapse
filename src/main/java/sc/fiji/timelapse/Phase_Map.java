@@ -5,6 +5,7 @@ import ij.ImagePlus;
 import ij.gui.Plot;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
+import ij.process.ImageProcessor;
 import ij.process.LUT;
 
 import java.util.Arrays;
@@ -19,6 +20,10 @@ import java.util.Arrays;
  * @author Johannes Schindelin
  */
 public class Phase_Map {
+	private static double gaussSigma = 0.5, x0 = 100, x1 = 400, sigma0 = 5, sigma1 = 20;
+	private static boolean useMirrorOutOfBoundsInWaveletTransform;
+
+	// TODO: remove and replace with a unit test
 	private final static double[] DATA = {
  102.7778, 98.7768, 94.6039, 93.5387,
 		96.7559, 100.6170, 101.3511, 99.1634, 95.4150, 93.2931, 93.0620, 94.4067,
@@ -39,18 +44,21 @@ public class Phase_Map {
 	private static double phase(double[] data, int dataSize, double s, int tau) {
 		double wR = 0, wI = 0;
 
-//		for (int i = -30; i < 0; i++) {
-//			double u = (i - tau) / s;
-//			double decay = Math.exp(-u * u / 2);
-//			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-//
-//			// normalization unnecessary:
-//			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-//			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-//
-//			wR += data[-i] * gaborR;
-//			wI += data[-i] * -gaborI;
-//		}
+		if (useMirrorOutOfBoundsInWaveletTransform) {
+			// tapering-off mirror out-of-bounds strategy
+			for (int i = Math.max(-30, -dataSize); i < 0; i++) {
+				double u = (i - tau) / s;
+				double decay = Math.exp(-u * u / 2);
+				double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+
+				// normalization unnecessary:
+				// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+				// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+
+				wR += data[-1 - i] * gaborR;
+				wI += data[-1 - i] * -gaborI;
+			}
+		}
 
 		for (int i = 0; i < dataSize; i++) {
 			double u = (i - tau) / s;
@@ -65,18 +73,21 @@ public class Phase_Map {
 			wI += data[i] * -gaborI;
 		}
 
-//		for (int i = 1; i <= 30; i++) {
-//			double u = (dataSize + i - tau) / s;
-//			double decay = Math.exp(-u * u / 2);
-//			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-//
-//			// normalization unnecessary:
-//			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-//			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-//
-//			wR += data[dataSize - 1 - i] * gaborR;
-//			wI += data[dataSize - 1 - i] * -gaborI;
-//		}
+		if (useMirrorOutOfBoundsInWaveletTransform) {
+			// tapering-off mirroring strategy
+			for (int i = 0; i < 30 && i < dataSize; i++) {
+				double u = (dataSize + i - tau) / s;
+				double decay = Math.exp(-u * u / 2);
+				double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+
+				// normalization unnecessary:
+				// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+				// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+
+				wR += data[dataSize - 1 - i] * gaborR;
+				wI += data[dataSize - 1 - i] * -gaborI;
+			}
+		}
 
 		// normalization unnecessary:
 		// wR /= Math.sqrt(s);
@@ -143,95 +154,101 @@ public class Phase_Map {
 			}
 		}
 
-		public void gauss(final double[] data, final int dataSize) {
-			final double[] copy = Arrays.copyOf(data, dataSize);
-			if (copy.length < kernel.length) {
+		public void gauss(final double[] data, final int offset, final int dataSize) {
+			final double[] result = new double[dataSize];
+			if (result.length < kernel.length) {
 				throw new IllegalArgumentException("Too few data");
 			}
+			// mirror out-of-bounds strategy
 			for (int i = 0; i < radius; i++) {
 				double value = 0;
 				for (int j = -radius, k = radius + 1 - i; j < -i; j++, k--) {
-					value += copy[k] * kernel[radius + j];
+					value += data[offset + k] * kernel[radius + j];
 				}
 				for (int j = -i; j <= radius; j++) {
-					value += copy[i + j] * kernel[radius + j];
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
-			for (int i = kernel.length; i < copy.length - kernel.length; i++) {
+			for (int i = radius; i < dataSize - radius; i++) {
 				double value = 0;
 				for (int j = -radius; j <= radius; j++) {
-					value += copy[i + j] * kernel[radius + j];
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
-			for (int i = copy.length - radius; i < copy.length; i++) {
+			// mirror out-of-bounds strategy
+			for (int i = dataSize - radius; i < dataSize; i++) {
 				double value = 0;
-				for (int j = -radius; j < copy.length - i; j++) {
-					value += copy[i + j] * kernel[radius + j];
+				for (int j = -radius; j < dataSize - i; j++) {
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				for (int j = copy.length - i, k = copy.length - 1; j <= radius; j++, k--) {
-					value += copy[k] * kernel[radius + j];
+				for (int j = dataSize - i, k = dataSize - 1; j <= radius; j++, k--) {
+					value += data[offset + k] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
+			System.arraycopy(result, 0, data, offset, dataSize);
 		}
 
-		public void gauss(final float[] data, final int dataSize) {
-			final float[] copy = Arrays.copyOf(data, dataSize);
-			if (copy.length < kernel.length) {
+		public void gauss(final float[] data, final int offset, final int dataSize) {
+			final float[] result = new float[dataSize];
+			if (result.length < kernel.length) {
 				throw new IllegalArgumentException("Too few data");
 			}
+			// mirror out-of-bounds strategy
 			for (int i = 0; i < radius; i++) {
 				float value = 0;
 				for (int j = -radius, k = radius + 1 - i; j < -i; j++, k--) {
-					value += copy[k] * kernel[radius + j];
+					value += data[offset + k] * kernel[radius + j];
 				}
 				for (int j = -i; j <= radius; j++) {
-					value += copy[i + j] * kernel[radius + j];
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
-			for (int i = kernel.length; i < copy.length - kernel.length; i++) {
+			for (int i = radius; i < dataSize - radius; i++) {
 				float value = 0;
 				for (int j = -radius; j <= radius; j++) {
-					value += copy[i + j] * kernel[radius + j];
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
-			for (int i = copy.length - radius; i < copy.length; i++) {
+			// mirror out-of-bounds strategy
+			for (int i = dataSize - radius; i < dataSize; i++) {
 				float value = 0;
-				for (int j = -radius; j < copy.length - i; j++) {
-					value += copy[i + j] * kernel[radius + j];
+				for (int j = -radius; j < dataSize - i; j++) {
+					value += data[offset + i + j] * kernel[radius + j];
 				}
-				for (int j = copy.length - i, k = copy.length - 1; j <= radius; j++, k--) {
-					value += copy[k] * kernel[radius + j];
+				for (int j = dataSize - i, k = dataSize - 1; j <= radius; j++, k--) {
+					value += data[offset + k] * kernel[radius + j];
 				}
-				data[i] = value;
+				result[i] = value;
 			}
+			System.arraycopy(result, 0, data, offset, dataSize);
 		}
 	}
 
-	private final static Gauss1D gauss = new Gauss1D(3);
+	private final static Gauss1D gauss = new Gauss1D(gaussSigma);
 
 	private final static double OCTAVE_NUMBER = 4, VOICES_PER_OCTAVE = 50, FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
-	private static FloatProcessor phaseMap(final ByteProcessor kymograph) {
+	private static FloatProcessor phaseMap(final ImageProcessor kymograph) {
 		final int width = kymograph.getWidth(), height = kymograph.getHeight();
-		final float[] pixels = (float[]) kymograph.convertToFloat().getPixels();
+		final FloatProcessor fp = (FloatProcessor)(kymograph instanceof FloatProcessor ?
+				kymograph.duplicate() : kymograph.convertToFloat());
+		final float[] pixels = (float[]) fp.getPixels();
 		final float[] output = new float[width * height];
 		final double[] data = new double[height];
 
 		// gauss along x
 		final float[] gaussData = new float[width];
 		for (int t = 0; t < height; t++) {
-			System.arraycopy(pixels, t * width, gaussData, 0, width);
-			gauss.gauss(gaussData, width);
-			System.arraycopy(gaussData, 0, pixels, t * width, width);
+			gauss.gauss(gaussData, t * width, width);
 		}
 
 		for (int x = 0; x < width; x++) {
-			double voiceNumber = x < 100 ? 5 : x > 400 ? 20 : 5 + (x - 100) * 15 / 300;
+			double voiceNumber = x < x0 ? sigma0 : x > x1 ? sigma1 : sigma0 + (x - x0) * (sigma1 - sigma0) / (x1 - x0);
 			double s = Math.pow(2, OCTAVE_NUMBER - 1 + voiceNumber / VOICES_PER_OCTAVE) / FOURIER_PERIOD;
 
 			int dataSize = height;
@@ -242,8 +259,6 @@ public class Phase_Map {
 					break;
 				}
 			}
-if (dataSize <= 30) continue; // TODO!
-//			gauss.gauss(data, dataSize);
 			for (int t = 0; t < dataSize; t++) {
 				output[x + t * width] = (float)phase(data, dataSize, s, t);
 			}
@@ -268,7 +283,7 @@ if (dataSize <= 30) continue; // TODO!
 		Plot plot = new Plot("Signal", "t", "intensity", x, DATA);
 		plot.show();
 
-		gauss.gauss(DATA, DATA.length);
+		gauss.gauss(DATA, 0, DATA.length);
 		new Plot("Gauss", "t", "intensity", x, DATA).show();
 
 		double voiceNumber = 10;
