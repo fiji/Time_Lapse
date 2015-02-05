@@ -20,7 +20,7 @@ public class Phase_Map implements PlugInFilter {
 	private final static double FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
 	private double octaveNumber = 4, voicesPerOctave = 50;
-	private double gaussSigma = 0.5, x0 = 100, x1 = 400, sigma0 = 5, sigma1 = 20;
+	private double gaussSigma = 2, x0 = 100, x1 = 400, sigma0 = 1, sigma1 = 1;
 	private boolean useMirrorOutOfBoundsInWaveletTransform;
 
 	private ImagePlus imp;
