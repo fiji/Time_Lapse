@@ -1,14 +1,11 @@
 package sc.fiji.timelapse;
 
-import ij.IJ;
 import ij.ImagePlus;
-import ij.gui.Plot;
-import ij.process.ByteProcessor;
+import ij.gui.GenericDialog;
+import ij.plugin.filter.PlugInFilter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
-
-import java.util.Arrays;
 
 /**
  * This plugin generates a phase map given a kymograph.
@@ -19,29 +16,16 @@ import java.util.Arrays;
  * 
  * @author Johannes Schindelin
  */
-public class Phase_Map {
-	private static double gaussSigma = 0.5, x0 = 100, x1 = 400, sigma0 = 5, sigma1 = 20;
-	private static boolean useMirrorOutOfBoundsInWaveletTransform;
+public class Phase_Map implements PlugInFilter {
+	private final static double FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
-	// TODO: remove and replace with a unit test
-	private final static double[] DATA = {
- 102.7778, 98.7768, 94.6039, 93.5387,
-		96.7559, 100.6170, 101.3511, 99.1634, 95.4150, 93.2931, 93.0620, 94.4067,
-		95.0145, 91.3656, 85.7460, 81.8193, 81.1583, 82.5666, 83.5125, 82.4781,
-		79.7292, 76.8684, 75.6667, 75.7833, 77.1071, 77.3563, 75.2343, 73.1426,
-		72.8452, 75.6537, 80.5355, 83.1111, 81.7732, 78.1705, 75.7785, 76.5999,
-		78.9754, 81.4223, 82.1742, 80.3836, 77.6548, 77.0296, 79.9947, 86.4499,
-		93.6043, 96.8819, 97.0000, 97.0000, 98.5363, 100.3333, 102.8655, 106.4932,
-		106.3209, 103.6289, 101.5676, 104.4964, 114.2064, 124.8781, 128.0325,
-		123.5076, 118.4095, 120.3274, 132.4116, 152.2553, 164.6311, 159.3684,
-		145.0733, 135.2279, 137.1769, 153.9188, 175.7037, 179.5289, 170.3401,
-		155.7301, 153.6190, 163.6312, 187.0240, 211.0800, 218.9913, 215.6850,
-		203.3726, 187.8662, 180.3454, 186.2497, 197.6905, 204.2850, 201.2192,
-		186.9690, 167.3154, 156.9617, 160.1731, 175.3750, 188.9225, 182.3175,
-		159.0797, 134.9690, 129.1487, 130.9763
-	};
+	private double octaveNumber = 4, voicesPerOctave = 50;
+	private double gaussSigma = 0.5, x0 = 100, x1 = 400, sigma0 = 5, sigma1 = 20;
+	private boolean useMirrorOutOfBoundsInWaveletTransform;
 
-	private static double phase(double[] data, int dataSize, double s, int tau) {
+	private ImagePlus imp;
+
+	private double phase(double[] data, int dataSize, double s, int tau) {
 		double wR = 0, wI = 0;
 
 		if (useMirrorOutOfBoundsInWaveletTransform) {
@@ -93,8 +77,8 @@ public class Phase_Map {
 		// wR /= Math.sqrt(s);
 		// wI /= Math.sqrt(s);
 
-		//return Math.atan2(wI, wR);
-		return Math.sqrt(wI * wI + wR * wR);
+		return Math.atan2(wI, wR);
+		//return Math.sqrt(wI * wI + wR * wR);
 		//return wI;
 	}
 
@@ -229,11 +213,7 @@ public class Phase_Map {
 		}
 	}
 
-	private final static Gauss1D gauss = new Gauss1D(gaussSigma);
-
-	private final static double OCTAVE_NUMBER = 4, VOICES_PER_OCTAVE = 50, FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
-
-	private static FloatProcessor phaseMap(final ImageProcessor kymograph) {
+	private FloatProcessor phaseMap(final ImageProcessor kymograph) {
 		final int width = kymograph.getWidth(), height = kymograph.getHeight();
 		final FloatProcessor fp = (FloatProcessor)(kymograph instanceof FloatProcessor ?
 				kymograph.duplicate() : kymograph.convertToFloat());
@@ -242,14 +222,14 @@ public class Phase_Map {
 		final double[] data = new double[height];
 
 		// gauss along x
-		final float[] gaussData = new float[width];
+		final Gauss1D gauss = new Gauss1D(gaussSigma);
 		for (int t = 0; t < height; t++) {
-			gauss.gauss(gaussData, t * width, width);
+			gauss.gauss(pixels, t * width, width);
 		}
 
 		for (int x = 0; x < width; x++) {
 			double voiceNumber = x < x0 ? sigma0 : x > x1 ? sigma1 : sigma0 + (x - x0) * (sigma1 - sigma0) / (x1 - x0);
-			double s = Math.pow(2, OCTAVE_NUMBER - 1 + voiceNumber / VOICES_PER_OCTAVE) / FOURIER_PERIOD;
+			double s = Math.pow(2, octaveNumber - 1 + voiceNumber / voicesPerOctave) / FOURIER_PERIOD;
 
 			int dataSize = height;
 			for (int t = 0; t < height; t++) {
@@ -269,30 +249,38 @@ public class Phase_Map {
 		return result;
 	}
 
-	public static void main(final String... args) {
-		if (true) {
-			final ImagePlus imp = IJ.openImage("C:\\kymo_s3_120807_yfp_s0001.bmp");
-			imp.show();
-			final ImagePlus out = new ImagePlus("phase map", phaseMap((ByteProcessor) imp.getProcessor()));
-			out.show();
-			new ij.ImageJ();
+	@Override
+	public int setup(final String arg, final ImagePlus imp) {
+		this.imp = imp;
+		return DOES_ALL | NO_CHANGES;
+	}
+
+	@Override
+	public void run(final ImageProcessor ip) {
+		final GenericDialog gd = new GenericDialog("Phase Map");
+		gd.addNumericField("Octave_number", octaveNumber, 0);
+		gd.addNumericField("Voices_per_octave", voicesPerOctave, 0);
+		gd.addNumericField("Gauss_sigma_(x-axis)", gaussSigma, 2);
+		gd.addNumericField("x0", x0, 0);
+		gd.addNumericField("x1", x1, 0);
+		gd.addNumericField("sigma0", sigma0, 0);
+		gd.addNumericField("sigma1", sigma1, 0);
+		gd.addCheckbox("Use_mirror_in_wavelet_transform", useMirrorOutOfBoundsInWaveletTransform);
+		gd.showDialog();
+		if (gd.wasCanceled())
 			return;
-		}
 
-		double[] x = PlotUtils.range(0, DATA.length - 1);
-		Plot plot = new Plot("Signal", "t", "intensity", x, DATA);
-		plot.show();
+		octaveNumber = gd.getNextNumber();
+		voicesPerOctave = gd.getNextNumber();
+		gaussSigma = gd.getNextNumber();
+		x0 = gd.getNextNumber();
+		x1 = gd.getNextNumber();
+		sigma0 = gd.getNextNumber();
+		sigma1 = gd.getNextNumber();
+		useMirrorOutOfBoundsInWaveletTransform = gd.getNextBoolean();
 
-		gauss.gauss(DATA, 0, DATA.length);
-		new Plot("Gauss", "t", "intensity", x, DATA).show();
-
-		double voiceNumber = 10;
-		double s = Math.pow(2, OCTAVE_NUMBER - 1 + voiceNumber / VOICES_PER_OCTAVE) / FOURIER_PERIOD;
-		double[] phase = new double[DATA.length];
-		for (int i = 0; i < phase.length; i++) {
-			phase[i] = phase(DATA, DATA.length, s, i);
-		}
-		Plot plot2 = new Plot("Phase map", "tau", "phase", x, phase);
-		plot2.show();
+		final ImageProcessor phaseMap = phaseMap(ip);
+		phaseMap.resetMinAndMax();
+		new ImagePlus("Phase Map of " + imp.getTitle(), phaseMap).show();
 	}
 }
