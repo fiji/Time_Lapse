@@ -269,6 +269,9 @@ if (dataSize < 10) continue; // TODO!
 		Plot plot = new Plot("Signal", "t", "intensity", x, DATA);
 		plot.show();
 
+		gauss.gauss(DATA, DATA.length);
+		new Plot("Gauss", "t", "intensity", x, DATA).show();
+
 		double voiceNumber = 10;
 		double s = Math.pow(2, OCTAVE_NUMBER - 1 + voiceNumber / VOICES_PER_OCTAVE) / FOURIER_PERIOD;
 		double[] phase = new double[DATA.length];
