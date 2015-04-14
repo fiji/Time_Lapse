@@ -221,6 +221,15 @@ public class Phase_Map {
 		final float[] pixels = (float[]) kymograph.convertToFloat().getPixels();
 		final float[] output = new float[width * height];
 		final double[] data = new double[height];
+
+		// gauss along x
+		final float[] gaussData = new float[width];
+		for (int t = 0; t < height; t++) {
+			System.arraycopy(pixels, t * width, gaussData, 0, width);
+			gauss.gauss(gaussData, width);
+			System.arraycopy(gaussData, 0, pixels, t * width, width);
+		}
+
 		for (int x = 0; x < width; x++) {
 			double voiceNumber = x < 100 ? 5 : x > 400 ? 20 : 5 + (x - 100) * 15 / 300;
 			double s = Math.pow(2, OCTAVE_NUMBER - 1 + voiceNumber / VOICES_PER_OCTAVE) / FOURIER_PERIOD;
