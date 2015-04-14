@@ -212,7 +212,7 @@ public class Phase_Map {
 		}
 	}
 
-	private final static Gauss1D gauss = new Gauss1D(3);
+	private final static Gauss1D gauss = new Gauss1D(0.5);
 
 	private final static double OCTAVE_NUMBER = 4, VOICES_PER_OCTAVE = 50, FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
