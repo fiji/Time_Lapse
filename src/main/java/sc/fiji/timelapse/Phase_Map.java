@@ -1,5 +1,7 @@
 package sc.fiji.timelapse;
 
+import java.util.Arrays;
+
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
@@ -23,7 +25,7 @@ public class Phase_Map implements PlugInFilter {
 
 	private double octaveNumber = 4, voicesPerOctave = 50;
 	private double gaussSigma = 2, x0 = 100, x1 = 400, sigma0 = 1, sigma1 = 1, subtractionPoint = 50;
-	private boolean useMirrorOutOfBoundsInWaveletTransform, showProfileStack, showPhaseProfileMap;
+	private boolean useMirrorOutOfBoundsInWaveletTransform, plotWaveCounts, showProfileStack, showPhaseProfileMap;
 
 	private ImagePlus imp;
 
@@ -326,6 +328,25 @@ public class Phase_Map implements PlugInFilter {
 		return stack;
 	}
 
+	/**
+	 * This constant declares how many values should be cut off
+	 * when determining the minimum and maximum of a profile
+	 * (akin to skipping a given percentile).
+	 */
+	private final static int WAVE_COUNT_CUT_OFF = 2;
+
+	private float[] getWaveCounts(final float[] map, final int width, final int height) {
+		final float[] waveCounts = new float[height];
+		for (int t = 0; t < height; t++) {
+			final float[] profile = getProfileAtTimepoint(t, map, width, height);
+			if (profile.length <= WAVE_COUNT_CUT_OFF) continue;
+			Arrays.sort(profile);
+			waveCounts[t] = (float) ((profile[profile.length - WAVE_COUNT_CUT_OFF]
+					- profile[WAVE_COUNT_CUT_OFF]) / 2 / Math.PI);
+		}
+		return waveCounts;
+	}
+
 	@Override
 	public int setup(final String arg, final ImagePlus imp) {
 		this.imp = imp;
@@ -342,6 +363,7 @@ public class Phase_Map implements PlugInFilter {
 		gd.addNumericField("x1", x1, 0);
 		gd.addNumericField("sigma0", sigma0, 0);
 		gd.addNumericField("sigma1", sigma1, 0);
+		gd.addCheckbox("Plot_wave_counts", plotWaveCounts);
 		gd.addCheckbox("Show_profile_stack", showProfileStack);
 		gd.addCheckbox("Show_phase_profile_map", showPhaseProfileMap);
 		gd.addNumericField("Subtraction_point", subtractionPoint, 0);
@@ -357,6 +379,7 @@ public class Phase_Map implements PlugInFilter {
 		x1 = gd.getNextNumber();
 		sigma0 = gd.getNextNumber();
 		sigma1 = gd.getNextNumber();
+		plotWaveCounts = gd.getNextBoolean();
 		showProfileStack = gd.getNextBoolean();
 		showPhaseProfileMap = gd.getNextBoolean();
 		subtractionPoint = gd.getNextNumber();
@@ -372,6 +395,12 @@ public class Phase_Map implements PlugInFilter {
 
 		//phaseMap.resetMinAndMax();
 		new ImagePlus("Phase Map of " + imp.getTitle(), phaseMap).show();
+
+		if (plotWaveCounts) {
+			final float[] counts = getWaveCounts(phaseMapPixels, width, height);
+			final float[] x = range(0, counts.length);
+			new Plot("Wave counts of " + imp.getTitle(), "time", "wave count", x, counts).show();
+		}
 
 		if (showProfileStack)
 			new ImagePlus("Profile stack", getProfileStack(phaseMapPixels, width, height)).show();
