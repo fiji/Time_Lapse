@@ -168,6 +168,40 @@ public class Phase_Map {
 				data[i] = value;
 			}
 		}
+
+		public void gauss(final float[] data, final int dataSize) {
+			final float[] copy = Arrays.copyOf(data, dataSize);
+			if (copy.length < kernel.length) {
+				throw new IllegalArgumentException("Too few data");
+			}
+			for (int i = 0; i < radius; i++) {
+				float value = 0;
+				for (int j = -radius, k = radius + 1 - i; j < -i; j++, k--) {
+					value += copy[k] * kernel[radius + j];
+				}
+				for (int j = -i; j <= radius; j++) {
+					value += copy[i + j] * kernel[radius + j];
+				}
+				data[i] = value;
+			}
+			for (int i = kernel.length; i < copy.length - kernel.length; i++) {
+				float value = 0;
+				for (int j = -radius; j <= radius; j++) {
+					value += copy[i + j] * kernel[radius + j];
+				}
+				data[i] = value;
+			}
+			for (int i = copy.length - radius; i < copy.length; i++) {
+				float value = 0;
+				for (int j = -radius; j < copy.length - i; j++) {
+					value += copy[i + j] * kernel[radius + j];
+				}
+				for (int j = copy.length - i, k = copy.length - 1; j <= radius; j++, k--) {
+					value += copy[k] * kernel[radius + j];
+				}
+				data[i] = value;
+			}
+		}
 	}
 
 	private final static Gauss1D gauss = new Gauss1D(3);
