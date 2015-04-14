@@ -39,18 +39,18 @@ public class Phase_Map {
 	private static double phase(double[] data, int dataSize, double s, int tau) {
 		double wR = 0, wI = 0;
 
-		for (int i = -30; i < 0; i++) {
-			double u = (i - tau) / s;
-			double decay = Math.exp(-u * u / 2);
-			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-
-			// normalization unnecessary:
-			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-
-			wR += data[1 - i] * gaborR;
-			wI += data[1 - i] * -gaborI;
-		}
+//		for (int i = -30; i < 0; i++) {
+//			double u = (i - tau) / s;
+//			double decay = Math.exp(-u * u / 2);
+//			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+//
+//			// normalization unnecessary:
+//			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+//			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+//
+//			wR += data[-i] * gaborR;
+//			wI += data[-i] * -gaborI;
+//		}
 
 		for (int i = 0; i < dataSize; i++) {
 			double u = (i - tau) / s;
@@ -65,25 +65,25 @@ public class Phase_Map {
 			wI += data[i] * -gaborI;
 		}
 
-		for (int i = 0; i < 0; i++) {
-			double u = (dataSize + i - tau) / s;
-			double decay = Math.exp(-u * u / 2);
-			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-
-			// normalization unnecessary:
-			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-
-			wR += data[dataSize - 2 - i] * gaborR;
-			wI += data[dataSize - 2 - i] * -gaborI;
-		}
+//		for (int i = 1; i <= 30; i++) {
+//			double u = (dataSize + i - tau) / s;
+//			double decay = Math.exp(-u * u / 2);
+//			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+//
+//			// normalization unnecessary:
+//			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+//			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+//
+//			wR += data[dataSize - 1 - i] * gaborR;
+//			wI += data[dataSize - 1 - i] * -gaborI;
+//		}
 
 		// normalization unnecessary:
 		// wR /= Math.sqrt(s);
 		// wI /= Math.sqrt(s);
 
-		return Math.atan2(wI, wR);
-		//return wI * wI + wR * wR;
+		//return Math.atan2(wI, wR);
+		return Math.sqrt(wI * wI + wR * wR);
 		//return wI;
 	}
 
@@ -212,7 +212,7 @@ public class Phase_Map {
 		}
 	}
 
-	private final static Gauss1D gauss = new Gauss1D(0.5);
+	private final static Gauss1D gauss = new Gauss1D(3);
 
 	private final static double OCTAVE_NUMBER = 4, VOICES_PER_OCTAVE = 50, FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
@@ -242,7 +242,7 @@ public class Phase_Map {
 					break;
 				}
 			}
-if (dataSize < 10) continue; // TODO!
+if (dataSize <= 30) continue; // TODO!
 //			gauss.gauss(data, dataSize);
 			for (int t = 0; t < dataSize; t++) {
 				output[x + t * width] = (float)phase(data, dataSize, s, t);
@@ -256,10 +256,9 @@ if (dataSize < 10) continue; // TODO!
 
 	public static void main(final String... args) {
 		if (true) {
-			final ImagePlus imp = IJ.openImage("C:\\kymograph.pgm");
+			final ImagePlus imp = IJ.openImage("C:\\kymo_s3_120807_yfp_s0001.bmp");
 			imp.show();
 			final ImagePlus out = new ImagePlus("phase map", phaseMap((ByteProcessor) imp.getProcessor()));
-			IJ.saveAs(out, "png", "C:\\new-phase-map.png");
 			out.show();
 			new ij.ImageJ();
 			return;
