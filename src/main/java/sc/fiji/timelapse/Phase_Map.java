@@ -242,7 +242,8 @@ public class Phase_Map {
 					break;
 				}
 			}
-			gauss.gauss(data, dataSize);
+if (dataSize < 10) continue; // TODO!
+//			gauss.gauss(data, dataSize);
 			for (int t = 0; t < dataSize; t++) {
 				output[x + t * width] = (float)phase(data, dataSize, s, t);
 			}
