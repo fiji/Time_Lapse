@@ -1,7 +1,9 @@
 package sc.fiji.timelapse;
 
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.GenericDialog;
+import ij.gui.Plot;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
@@ -21,7 +23,7 @@ public class Phase_Map implements PlugInFilter {
 
 	private double octaveNumber = 4, voicesPerOctave = 50;
 	private double gaussSigma = 2, x0 = 100, x1 = 400, sigma0 = 1, sigma1 = 1, subtractionPoint = 50;
-	private boolean useMirrorOutOfBoundsInWaveletTransform, showPhaseProfileMap;
+	private boolean useMirrorOutOfBoundsInWaveletTransform, showProfileStack, showPhaseProfileMap;
 
 	private ImagePlus imp;
 
@@ -282,6 +284,42 @@ public class Phase_Map implements PlugInFilter {
 		return output;
 	}
 
+	private float[] getProfile(final float[] pixels, final int offset, final int length) {
+		final float[] profile = new float[length];
+		for (int i = 0; i < length; i++) {
+			profile[i] = pixels[offset + i];
+			if (i > 0) {
+				float diff = (profile[i] - profile[i - 1]) / (float) Math.PI;
+				if (Math.abs(diff) >= 0.5)
+					profile[i] -= Math.PI * Math.round(diff);
+			}
+		}
+		return profile;
+	}
+
+	private float[] getProfileAtTimepoint(final int t, final float[] map, final int width, final int height) {
+		final int offset = t * width;
+		int length = width;
+		while (length > 0 && map[offset + length - 1] == 0)
+			length--;
+		return getProfile(map, offset, length);
+	}
+
+	private ImageStack getProfileStack(final float[] map, final int width, final int height) {
+		ImageStack stack = null;
+		for (int t = 0; t < height; t++) {
+			final float[] profile = getProfileAtTimepoint(t, map, width, height);
+			final float[] x = new float[profile.length];
+			for (int i = 0; i < x.length; i++)
+				x[i] = i;
+			final ImageProcessor ip = new Plot("profile", "distance", "phase", x, profile).getProcessor();
+			if (stack == null)
+				stack = new ImageStack(ip.getWidth(), ip.getHeight());
+			stack.addSlice("t=" + t, ip);
+		}
+		return stack;
+	}
+
 	@Override
 	public int setup(final String arg, final ImagePlus imp) {
 		this.imp = imp;
@@ -298,6 +336,7 @@ public class Phase_Map implements PlugInFilter {
 		gd.addNumericField("x1", x1, 0);
 		gd.addNumericField("sigma0", sigma0, 0);
 		gd.addNumericField("sigma1", sigma1, 0);
+		gd.addCheckbox("Show_profile_stack", showProfileStack);
 		gd.addCheckbox("Show_phase_profile_map", showPhaseProfileMap);
 		gd.addNumericField("Subtraction_point", subtractionPoint, 0);
 		gd.addCheckbox("Use_mirror_in_wavelet_transform", useMirrorOutOfBoundsInWaveletTransform);
@@ -312,19 +351,24 @@ public class Phase_Map implements PlugInFilter {
 		x1 = gd.getNextNumber();
 		sigma0 = gd.getNextNumber();
 		sigma1 = gd.getNextNumber();
+		showProfileStack = gd.getNextBoolean();
 		showPhaseProfileMap = gd.getNextBoolean();
 		subtractionPoint = gd.getNextNumber();
 		useMirrorOutOfBoundsInWaveletTransform = gd.getNextBoolean();
 
 		final int width = ip.getWidth(), height = ip.getHeight();
 
-		final FloatProcessor resultPhaseMap = new FloatProcessor(width, height, phaseMap(ip, false));
+		float[] phaseMapPixels = phaseMap(ip, false);
+		final FloatProcessor resultPhaseMap = new FloatProcessor(width, height, phaseMapPixels);
 		resultPhaseMap.setMinAndMax(-Math.PI, Math.PI);
 		resultPhaseMap.setLut(createLUT());
 		final ImageProcessor phaseMap = resultPhaseMap;
 
 		//phaseMap.resetMinAndMax();
 		new ImagePlus("Phase Map of " + imp.getTitle(), phaseMap).show();
+
+		if (showProfileStack)
+			new ImagePlus("Profile stack", getProfileStack(phaseMapPixels, width, height)).show();
 
 		if (showPhaseProfileMap) {
 			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseMap(ip, true));
