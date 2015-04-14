@@ -305,13 +305,19 @@ public class Phase_Map implements PlugInFilter {
 		return getProfile(map, offset, length);
 	}
 
+	private float[] range(final int from, final int to) {
+		final float[] range = new float[to - from];
+		for (int i = 0; i < range.length; i++) {
+			range[i] = from + i;
+		}
+		return range;
+	}
+
 	private ImageStack getProfileStack(final float[] map, final int width, final int height) {
 		ImageStack stack = null;
 		for (int t = 0; t < height; t++) {
 			final float[] profile = getProfileAtTimepoint(t, map, width, height);
-			final float[] x = new float[profile.length];
-			for (int i = 0; i < x.length; i++)
-				x[i] = i;
+			final float[] x = range(0, profile.length);
 			final ImageProcessor ip = new Plot("profile", "distance", "phase", x, profile).getProcessor();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
