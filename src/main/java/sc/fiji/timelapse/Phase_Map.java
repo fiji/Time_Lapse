@@ -38,6 +38,19 @@ public class Phase_Map {
 	private static double phase(double[] data, int dataSize, double s, int tau) {
 		double wR = 0, wI = 0;
 
+		for (int i = -30; i < 0; i++) {
+			double u = (i - tau) / s;
+			double decay = Math.exp(-u * u / 2);
+			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+
+			// normalization unnecessary:
+			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+
+			wR += data[1 - i] * gaborR;
+			wI += data[1 - i] * -gaborI;
+		}
+
 		for (int i = 0; i < dataSize; i++) {
 			double u = (i - tau) / s;
 			double decay = Math.exp(-u * u / 2);
@@ -49,6 +62,19 @@ public class Phase_Map {
 
 			wR += data[i] * gaborR;
 			wI += data[i] * -gaborI;
+		}
+
+		for (int i = 0; i < 0; i++) {
+			double u = (dataSize + i - tau) / s;
+			double decay = Math.exp(-u * u / 2);
+			double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
+
+			// normalization unnecessary:
+			// gaborR /= Math.pow(Math.PI, 1.0 / 4);
+			// gaborI /= Math.pow(Math.PI, 1.0 / 4);
+
+			wR += data[dataSize - 2 - i] * gaborR;
+			wI += data[dataSize - 2 - i] * -gaborI;
 		}
 
 		// normalization unnecessary:
@@ -111,12 +137,33 @@ public class Phase_Map {
 
 		public void gauss(final double[] data, final int dataSize) {
 			final double[] copy = Arrays.copyOf(data, dataSize);
-			for (int i = 0; i < copy.length; i++) {
-				int begin = i < radius ? -i : -radius;
-				int end = i >= copy.length - radius ? copy.length - i - 1: radius;
+			if (copy.length < kernel.length) {
+				throw new IllegalArgumentException("Too few data");
+			}
+			for (int i = 0; i < radius; i++) {
 				double value = 0;
-				for (int j = begin; j <= end; j++) {
+				for (int j = -radius, k = radius + 1 - i; j < -i; j++, k--) {
+					value += copy[k] * kernel[radius + j];
+				}
+				for (int j = -i; j <= radius; j++) {
 					value += copy[i + j] * kernel[radius + j];
+				}
+				data[i] = value;
+			}
+			for (int i = kernel.length; i < copy.length - kernel.length; i++) {
+				double value = 0;
+				for (int j = -radius; j <= radius; j++) {
+					value += copy[i + j] * kernel[radius + j];
+				}
+				data[i] = value;
+			}
+			for (int i = copy.length - radius; i < copy.length; i++) {
+				double value = 0;
+				for (int j = -radius; j < copy.length - i; j++) {
+					value += copy[i + j] * kernel[radius + j];
+				}
+				for (int j = copy.length - i, k = copy.length - 1; j <= radius; j++, k--) {
+					value += copy[k] * kernel[radius + j];
 				}
 				data[i] = value;
 			}
