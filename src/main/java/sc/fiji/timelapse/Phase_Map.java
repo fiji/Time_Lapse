@@ -1,12 +1,13 @@
 package sc.fiji.timelapse;
 
-import java.util.Arrays;
-
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Plot;
 import ij.process.ByteProcessor;
-import ij.process.ColorProcessor;
+import ij.process.FloatProcessor;
+import ij.process.LUT;
+
+import java.util.Arrays;
 
 /**
  * This plugin generates a phase map given a kymograph.
@@ -86,38 +87,43 @@ public class Phase_Map {
 		//return wI;
 	}
 
-	private static int phase2colorGaussian(double phase)
+	protected static int[] gaussianLUT()
 	{
-		double factor = Math.exp(-phase * phase);
-		int red = (int)(factor * 255);
-		int green = (int)(factor * 330);
-		int blue = (int)(factor * 400);
-		return (red << 16) | ((green > 255 ? 255 : green) << 8) | (blue > 255 ? 255 : blue);
+		final int[] lut = new int[256];
+		for (int i = 0; i < 255; i++) {
+			double phase = (i - 127.5) * Math.PI / 127.5;
+			double factor = Math.exp(-phase * phase);
+			int red = (int)(factor * 255);
+			int green = (int)(factor * 330);
+			int blue = (int)(factor * 400);
+			lut[i] = (red << 16) | ((green > 255 ? 255 : green) << 8) | (blue > 255 ? 255 : blue);
+		}
+		return lut;
 	}
 
-	private static int phase2color(double phase)
+	protected static LUT createLUT()
 	{
-		final double red, green, blue;
-		if (phase < 0) {
-			red = (phase + Math.PI) * (phase + Math.PI) * 127 / Math.PI / Math.PI;
-			green = -phase * 220 / Math.PI;
-			if (phase < -Math.PI / 2) {
-				blue = 220 + (phase + Math.PI) * (150 - 220) / Math.PI * 2;
+		final byte[] red = new byte[256];
+		final byte[] green = new byte[256];
+		final byte[] blue = new byte[256];
+		for (int i = 0; i < 128; i++) {
+			red[i] = (byte)(i * i * 127 / 128 / 128);
+			green[i] = (byte)((128 - i) * 220 / 128);
+			if (i < 64) {
+				blue[i] = (byte)(220 + i * (150 - 220) / 64);
 			}
 			else {
-				blue = -phase * 150 / Math.PI * 2;
+				blue[i] = (byte)((128 - i) * 150 / 64);
 			}
 		}
-		else if (phase < Math.PI / 2) {
-			red = green = blue = phase * 255 / Math.PI * 2;
+		for (int i = 128; i < 192; i++) {
+			red[i] = green[i] = blue[i] = (byte)((i - 128) * 255 / 64);
 		}
-		else {
-			red = 255 + (phase - Math.PI / 2) * (127 - 255) / Math.PI * 2;
-			green = blue = 255 + (phase - Math.PI / 2) * (220 - 255) / Math.PI * 2;
+		for (int i = 192; i < 256; i++) {
+			red[i] = (byte)(255 + (i - 192) * (127 - 255) / 64);
+			green[i] = blue[i] = (byte)(255 + (i - 192) * (220 - 255) / 64);
 		}
-		return ((red > 255 ? 255 : (int) red) << 16) |
-				((green > 255 ? 255 : (int) green) << 8) |
-				(blue > 255 ? 255 : (int) blue);
+		return new LUT(red, green, blue);
 	}
 
 	protected static class Gauss1D {
@@ -210,10 +216,10 @@ public class Phase_Map {
 
 	private final static double OCTAVE_NUMBER = 4, VOICES_PER_OCTAVE = 50, FOURIER_PERIOD = 4 * Math.PI / (6 + Math.sqrt(2 + 6 * 6));
 
-	private static ColorProcessor phaseMap(final ByteProcessor kymograph) {
+	private static FloatProcessor phaseMap(final ByteProcessor kymograph) {
 		final int width = kymograph.getWidth(), height = kymograph.getHeight();
-		final byte[] pixels = (byte[]) kymograph.getPixels();
-		final int[] output = new int[width * height];
+		final float[] pixels = (float[]) kymograph.convertToFloat().getPixels();
+		final float[] output = new float[width * height];
 		final double[] data = new double[height];
 		for (int x = 0; x < width; x++) {
 			double voiceNumber = x < 100 ? 5 : x > 400 ? 20 : 5 + (x - 100) * 15 / 300;
@@ -221,7 +227,7 @@ public class Phase_Map {
 
 			int dataSize = height;
 			for (int t = 0; t < height; t++) {
-				data[t] = pixels[x + t * width] & 0xff;
+				data[t] = pixels[x + t * width];
 				if (data[t] < 2) {
 					dataSize = t;
 					break;
@@ -229,10 +235,13 @@ public class Phase_Map {
 			}
 			gauss.gauss(data, dataSize);
 			for (int t = 0; t < dataSize; t++) {
-				output[x + t * width] = phase2color(phase(data, dataSize, s, t));
+				output[x + t * width] = (float)phase(data, dataSize, s, t);
 			}
 		}
-		return new ColorProcessor(width, height, output);
+		final FloatProcessor result = new FloatProcessor(width, height, output);
+		result.setMinAndMax(-Math.PI, Math.PI);
+		result.setLut(createLUT());
+		return result;
 	}
 
 	public static void main(final String... args) {
@@ -242,14 +251,7 @@ public class Phase_Map {
 			final ImagePlus out = new ImagePlus("phase map", phaseMap((ByteProcessor) imp.getProcessor()));
 			IJ.saveAs(out, "png", "C:\\new-phase-map.png");
 			out.show();
-			return;
-		}
-		if (!true) {
-			final double[] gauss = new double[101];
-			for (int i = 0; i < gauss.length; i++) {
-				gauss[i] = (phase2color((i - 50) * Math.PI / 50) >> 8) & 0xff;
-			}
-			new Plot("gauss", "x", "s", PlotUtils.range(-50, +50), gauss).show();
+			new ij.ImageJ();
 			return;
 		}
 
