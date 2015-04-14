@@ -213,13 +213,15 @@ public class Phase_Map implements PlugInFilter {
 		}
 	}
 
-	private float[] phaseMap(final ImageProcessor kymograph) {
+	private float[] phaseMap(final ImageProcessor kymograph, final boolean showProfileMap) {
 		final int width = kymograph.getWidth(), height = kymograph.getHeight();
 		final FloatProcessor fp = (FloatProcessor)(kymograph instanceof FloatProcessor ?
 				kymograph.duplicate() : kymograph.convertToFloat());
 		final float[] pixels = (float[]) fp.getPixels();
-		final float[] output = new float[width * height];
+		float[] output = new float[width * height];
 		final double[] data = new double[height];
+
+		final int[] rowLength = new int[height];
 
 		// gauss along x
 		final Gauss1D gauss = new Gauss1D(gaussSigma);
@@ -244,42 +246,12 @@ public class Phase_Map implements PlugInFilter {
 			}
 		}
 
-		return output;
-	}
-
-	private float[] phaseProfileMap(final ImageProcessor kymograph) {
-		final int width = kymograph.getWidth(), height = kymograph.getHeight();
-		final FloatProcessor fp = (FloatProcessor)(kymograph instanceof FloatProcessor ?
-				kymograph.duplicate() : kymograph.convertToFloat());
-		final float[] pixels = (float[]) fp.getPixels();
-		final float[] phaseMap = new float[width * height];
-		final float[] output = new float[width * height];
-		final double[] data = new double[height];
-
-		final int[] rowLength = new int[height];
-
-		// gauss along x
-		final Gauss1D gauss = new Gauss1D(gaussSigma);
-		for (int t = 0; t < height; t++) {
-			gauss.gauss(pixels, t * width, width);
+		if (!showProfileMap) {
+			return output;
 		}
 
-		for (int x = 0; x < width; x++) {
-			double voiceNumber = x < x0 ? sigma0 : x > x1 ? sigma1 : sigma0 + (x - x0) * (sigma1 - sigma0) / (x1 - x0);
-			double s = Math.pow(2, octaveNumber - 1 + voiceNumber / voicesPerOctave) / FOURIER_PERIOD;
-
-			int dataSize = height;
-			for (int t = 0; t < height; t++) {
-				data[t] = pixels[x + t * width];
-				if (data[t] < 2) {
-					dataSize = t;
-					break;
-				}
-			}
-			for (int t = 0; t < dataSize; t++) {
-				phaseMap[x + t * width] = (float)phase(data, dataSize, s, t);
-			}
-		}
+		final float[] phaseMap = output;
+		output = new float[width * height];
 
 		// get row length
 		for (int t = 0; t < height; t++) {
@@ -346,7 +318,7 @@ public class Phase_Map implements PlugInFilter {
 
 		final int width = ip.getWidth(), height = ip.getHeight();
 
-		final FloatProcessor resultPhaseMap = new FloatProcessor(width, height, phaseMap(ip));
+		final FloatProcessor resultPhaseMap = new FloatProcessor(width, height, phaseMap(ip, false));
 		resultPhaseMap.setMinAndMax(-Math.PI, Math.PI);
 		resultPhaseMap.setLut(createLUT());
 		final ImageProcessor phaseMap = resultPhaseMap;
@@ -355,7 +327,7 @@ public class Phase_Map implements PlugInFilter {
 		new ImagePlus("Phase Map of " + imp.getTitle(), phaseMap).show();
 
 		if (showPhaseProfileMap) {
-			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseProfileMap(ip));
+			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseMap(ip, true));
 			resultPhaseProfileMap.setMinAndMax(-Math.PI, Math.PI);
 			resultPhaseProfileMap.setLut(createLUT());
 			final ImageProcessor phaseProfileMap = resultPhaseProfileMap;
