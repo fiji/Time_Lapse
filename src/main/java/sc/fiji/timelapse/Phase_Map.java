@@ -82,6 +82,8 @@ public class Phase_Map {
 		// wI /= Math.sqrt(s);
 
 		return Math.atan2(wI, wR);
+		//return wI * wI + wR * wR;
+		//return wI;
 	}
 
 	private static int phase2colorGaussian(double phase)
