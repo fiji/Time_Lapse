@@ -316,7 +316,7 @@ public class Phase_Map implements PlugInFilter {
 		return range;
 	}
 
-	private ImageStack getProfileStack(final float[] map, final int width, final int height, final boolean anchorToZero, boolean cutTails) {
+	private ImagePlus getProfileStack(final String title, final float[] map, final int width, final int height, final boolean anchorToZero, boolean cutTails) {
 		ImageStack stack = null;
 		final float[][] profiles = new float[height][];
 		float maxX, minT, maxT;
@@ -363,7 +363,20 @@ public class Phase_Map implements PlugInFilter {
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("t=" + t, ip);
 		}
-		return stack;
+		final ImagePlus result = new ImagePlus(title, stack);
+		final StringBuilder builder = new StringBuilder();
+		builder.append("[\n");
+		for (int t = 0; t < profiles.length; t++) {
+			builder.append("  [");
+			for (int i = 0; i < profiles[t].length; i++) {
+				if (i > 0) builder.append(", ");
+				builder.append(profiles[t][i]);
+			}
+			builder.append(t + 1 < profiles.length ? "],\n" : "]\n");
+		}
+		builder.append("]\n");
+		result.setProperty("Info", builder.toString());
+		return result;
 	}
 
 	/**
@@ -445,7 +458,7 @@ public class Phase_Map implements PlugInFilter {
 		}
 
 		if (showProfileStack)
-			new ImagePlus("Profile stack", getProfileStack(phaseMapPixels, width, height, anchorProfileStack, cutTailsFromProfileStack)).show();
+			getProfileStack("Profile Stack  of " + imp.getTitle(), phaseMapPixels, width, height, anchorProfileStack, cutTailsFromProfileStack).show();
 
 		if (showPhaseProfileMap) {
 			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseMap(ip, true));
