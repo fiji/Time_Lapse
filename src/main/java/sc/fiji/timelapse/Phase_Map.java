@@ -25,7 +25,8 @@ public class Phase_Map implements PlugInFilter {
 
 	private double octaveNumber = 4, voicesPerOctave = 50;
 	private double gaussSigma = 2, x0 = 100, x1 = 400, sigma0 = 1, sigma1 = 1, subtractionPoint = 50;
-	private boolean useMirrorOutOfBoundsInWaveletTransform, plotWaveCounts, showProfileStack, anchorProfileStack, showPhaseProfileMap;
+	private boolean useMirrorOutOfBoundsInWaveletTransform, plotWaveCounts,
+		showProfileStack, anchorProfileStack, cutTailsFromProfileStack, showPhaseProfileMap;
 
 	private ImagePlus imp;
 
@@ -315,7 +316,7 @@ public class Phase_Map implements PlugInFilter {
 		return range;
 	}
 
-	private ImageStack getProfileStack(final float[] map, final int width, final int height, final boolean anchorToZero) {
+	private ImageStack getProfileStack(final float[] map, final int width, final int height, final boolean anchorToZero, boolean cutTails) {
 		ImageStack stack = null;
 		final float[][] profiles = new float[height][];
 		float maxX, minT, maxT;
@@ -329,6 +330,18 @@ public class Phase_Map implements PlugInFilter {
 			if (anchorToZero) {
 				for (int i = profiles[t].length - 1; i >= 0; i--) {
 					profiles[t][i] -= profiles[t][0];
+				}
+			}
+			if (cutTails && profiles[t].length > WAVE_COUNT_CUT_OFF) {
+				final float[] sorted = Arrays.copyOf(profiles[t], profiles[t].length);
+				Arrays.sort(sorted);
+				float min = sorted[WAVE_COUNT_CUT_OFF];
+				int length = profiles[t].length;
+				while (length > 0 && profiles[t][length - 1] > min) {
+					length--;
+				}
+				if (length < profiles[t].length) {
+					profiles[t] = Arrays.copyOf(profiles[t], length);
 				}
 			}
 			for (float f : profiles[t]) {
@@ -391,6 +404,7 @@ public class Phase_Map implements PlugInFilter {
 		gd.addCheckbox("Plot_wave_counts", plotWaveCounts);
 		gd.addCheckbox("Show_profile_stack", showProfileStack);
 		gd.addCheckbox("Anchor_profile_stack i.e. normalize to start at (0,0)", anchorProfileStack);
+		gd.addCheckbox("Cut_tails_from_profile_stack i.e. skip spurious signal at tail", cutTailsFromProfileStack);
 		gd.addCheckbox("Show_phase_profile_map", showPhaseProfileMap);
 		gd.addNumericField("Subtraction_point", subtractionPoint, 0);
 		gd.addCheckbox("Use_mirror_in_wavelet_transform", useMirrorOutOfBoundsInWaveletTransform);
@@ -408,6 +422,7 @@ public class Phase_Map implements PlugInFilter {
 		plotWaveCounts = gd.getNextBoolean();
 		showProfileStack = gd.getNextBoolean();
 		anchorProfileStack = gd.getNextBoolean();
+		cutTailsFromProfileStack = gd.getNextBoolean();
 		showPhaseProfileMap = gd.getNextBoolean();
 		subtractionPoint = gd.getNextNumber();
 		useMirrorOutOfBoundsInWaveletTransform = gd.getNextBoolean();
@@ -430,7 +445,7 @@ public class Phase_Map implements PlugInFilter {
 		}
 
 		if (showProfileStack)
-			new ImagePlus("Profile stack", getProfileStack(phaseMapPixels, width, height, anchorProfileStack)).show();
+			new ImagePlus("Profile stack", getProfileStack(phaseMapPixels, width, height, anchorProfileStack, cutTailsFromProfileStack)).show();
 
 		if (showPhaseProfileMap) {
 			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseMap(ip, true));
