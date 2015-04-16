@@ -308,7 +308,14 @@ public class Phase_Map implements PlugInFilter {
 		return getProfile(map, offset, length);
 	}
 
-	private float[] range(final int from, final int to) {
+	/**
+	 * Returns an array of increasing integers for use in plot windows.
+	 * 
+	 * @param from minimum value
+	 * @param to maximum value + 1
+	 * @return the range
+	 */
+	public static float[] range(final int from, final int to) {
 		final float[] range = new float[to - from];
 		for (int i = 0; i < range.length; i++) {
 			range[i] = from + i;
