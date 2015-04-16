@@ -317,10 +317,30 @@ public class Phase_Map implements PlugInFilter {
 
 	private ImageStack getProfileStack(final float[] map, final int width, final int height) {
 		ImageStack stack = null;
+		final float[][] profiles = new float[height][];
+		float maxX, minT, maxT;
+		minT = Float.MAX_VALUE;
+		maxX = maxT = -Float.MAX_VALUE;
 		for (int t = 0; t < height; t++) {
-			final float[] profile = getProfileAtTimepoint(t, map, width, height);
-			final float[] x = range(0, profile.length);
-			final ImageProcessor ip = new Plot("profile", "distance", "phase", x, profile).getProcessor();
+			profiles[t] = getProfileAtTimepoint(t, map, width, height);
+			if (maxX < profiles[t].length) {
+				maxX = profiles[t].length;
+			}
+			for (float f : profiles[t]) {
+				if (minT > f) {
+					minT = f;
+				}
+				if (maxT < f) {
+					maxT = f;
+				}
+			}
+		}
+		for (int t = 0; t < height; t++) {
+			final float[] x = range(0, profiles[t].length);
+			final Plot plot = new Plot("profile", "distance", "phase", x, profiles[t]);
+			plot.setFrameSize(850, 400);
+			plot.setLimits(0, maxX, minT, maxT);
+			final ImageProcessor ip = plot.getProcessor();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("t=" + t, ip);
