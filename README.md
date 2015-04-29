@@ -1,3 +1,5 @@
+![](http://jenkins.imagej.net/job/Time_Lapse/lastBuild/badge/icon)
+
 The Time Lapse tools were written in conjunction with the paper
 
 	"A Doppler effect in embryonic pattern formation", Soroldoni et al
