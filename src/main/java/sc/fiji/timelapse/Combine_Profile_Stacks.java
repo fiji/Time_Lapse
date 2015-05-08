@@ -1,5 +1,7 @@
 package sc.fiji.timelapse;
 
+import static sc.fiji.timelapse.Phase_Map.divide;
+import static sc.fiji.timelapse.Phase_Map.range;
 import fiji.util.FloatArray;
 import ij.IJ;
 import ij.ImageJ;
@@ -8,6 +10,7 @@ import ij.ImageStack;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.Plot;
+import ij.measure.Calibration;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
@@ -52,14 +55,29 @@ public class Combine_Profile_Stacks implements PlugIn {
 		if (gd.wasCanceled()) return;
 
 		final List<float[][]> profiles = new ArrayList<float[][]>();
+		float pixelSpacing = 1;
+		String pixelSpacingUnit = null;
 		for (final ImagePlus imp : images) {
-			if (gd.getNextBoolean()) profiles.add(map.get(imp));
+			if (gd.getNextBoolean()) {
+				if (pixelSpacingUnit == null) {
+					final Calibration calibration = imp.getCalibration();
+					if (calibration != null) {
+						pixelSpacing = (float) calibration.pixelWidth;
+						pixelSpacingUnit = calibration.getUnit();
+					}
+				}
+				profiles.add(map.get(imp));
+			}
+		}
+		if (pixelSpacingUnit == null) {
+			pixelSpacingUnit = "pixels";
 		}
 
-		combineProfileStacks("Combined profile stack", profiles).show();
+		combineProfileStacks("Combined profile stack", profiles, pixelSpacing, pixelSpacingUnit).show();
 	}
 
-	private ImagePlus combineProfileStacks(final String title, List<float[][]> profiles) {
+	private ImagePlus combineProfileStacks(final String title, List<float[][]> profiles,
+			final float pixelSpacing, final String pixelSpacingUnit) {
 		int maxX, maxT;
 		float minPhase, maxPhase;
 		maxX = maxT = 0;
@@ -114,15 +132,18 @@ public class Combine_Profile_Stacks implements PlugIn {
 				}
 			}
 
-			final Plot plot = new Plot("Profile t=" + t, "x", "phase");
-			plot.setLimits(0, maxX, minPhase, maxPhase);
+			final float pi2 = (float) (2 * Math.PI);
+			final Plot plot = new Plot("Profile t=" + t,
+					"x" + ("".equals(pixelSpacingUnit) ? "" : (" (" + pixelSpacingUnit + ")")),
+					"phase (× 2π)");
+			plot.setLimits(0, maxX, minPhase / pi2, maxPhase / pi2);
 			plot.setFrameSize(850, 400);
 
 			for (int i = 0; i < count; i++) {
-				plot.addPoints(Phase_Map.range(0, p[i].length), p[i], Plot.LINE);
+				plot.addPoints(range(0, p[i].length, pixelSpacing), divide(p[i], pi2), Plot.LINE);
 			}
 			plot.setColor(Color.BLUE);
-			plot.addPoints(Phase_Map.range(0, median[t].length), median[t], Plot.LINE);
+			plot.addPoints(range(0, median[t].length, pixelSpacing), divide(median[t], pi2), Plot.LINE);
 
 			final ImageProcessor ip = plot.getProcessor();
 			if (imageStack == null) imageStack = new ImageStack(ip.getWidth(), ip.getHeight());

@@ -1,15 +1,16 @@
 package sc.fiji.timelapse;
 
-import java.util.Arrays;
-
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.gui.Plot;
+import ij.measure.Calibration;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
+
+import java.util.Arrays;
 
 /**
  * This plugin generates a phase map given a kymograph.
@@ -315,15 +316,32 @@ public class Phase_Map implements PlugInFilter {
 	 * @param to maximum value + 1
 	 * @return the range
 	 */
-	public static float[] range(final int from, final int to) {
+	public static float[] range(final int from, final int to, final float factor) {
 		final float[] range = new float[to - from];
 		for (int i = 0; i < range.length; i++) {
-			range[i] = from + i;
+			range[i] = from + i * factor;
 		}
 		return range;
 	}
 
-	private ImagePlus getProfileStack(final String title, final float[] map, final int width, final int height, final boolean anchorToZero, boolean cutTails) {
+	/**
+	 * Divides a list of float numbers by a factor, non-destructively.
+	 * 
+	 * @param array the input values
+	 * @param factor the factor to divide by
+	 * @return the multiplied values
+	 */
+	public static float[] divide(final float[] array, final float factor) {
+		final float[] result = new float[array.length];
+		for (int i = 0; i < result.length; i++) {
+			result[i] = array[i] / factor;
+		}
+		return result;
+	}
+
+	private ImagePlus getProfileStack(final String title, final float[] map,
+			final int width, final int height, final float pixelSpacing, final String pixelSpacingUnit,
+			final boolean anchorToZero, boolean cutTails) {
 		ImageStack stack = null;
 		final float[][] profiles = new float[height][];
 		float maxX, minT, maxT;
@@ -360,17 +378,26 @@ public class Phase_Map implements PlugInFilter {
 				}
 			}
 		}
+		final float pi2 = (float) (2 * Math.PI);
 		for (int t = 0; t < height; t++) {
-			final float[] x = range(0, profiles[t].length);
-			final Plot plot = new Plot("profile", "distance", "phase", x, profiles[t]);
+			final float[] x = range(0, profiles[t].length, pixelSpacing);
+			final Plot plot = new Plot("profile",
+					"distance" + ("".equals(pixelSpacingUnit) ? "" : (" (" + pixelSpacingUnit + ")")),
+					"phase (× 2π)", x, divide(profiles[t], pi2));
 			plot.setFrameSize(850, 400);
-			plot.setLimits(0, maxX, minT, maxT);
+			plot.setLimits(0, maxX, minT / pi2, maxT / pi2);
 			final ImageProcessor ip = plot.getProcessor();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("t=" + t, ip);
 		}
 		final ImagePlus result = new ImagePlus(title, stack);
+		Calibration calibration = result.getCalibration();
+		if (calibration == null) {
+			result.setCalibration((calibration = new Calibration()));
+		}
+		calibration.pixelWidth = pixelSpacing;
+		calibration.setUnit(pixelSpacingUnit);
 		final StringBuilder builder = new StringBuilder();
 		builder.append("[\n");
 		for (int t = 0; t < profiles.length; t++) {
@@ -448,6 +475,15 @@ public class Phase_Map implements PlugInFilter {
 		useMirrorOutOfBoundsInWaveletTransform = gd.getNextBoolean();
 
 		final int width = ip.getWidth(), height = ip.getHeight();
+		final Calibration calibration = imp.getCalibration();
+		final float pixelSpacing = calibration == null || calibration.pixelWidth == 0 ?
+				1 : (float) calibration.pixelWidth;
+		final String pixelSpacingUnit = calibration == null || "".equals(calibration.getUnit()) ?
+				"pixels" : calibration.getUnit();
+		final float frameInterval = calibration == null || calibration.frameInterval == 0 ?
+				1 : (float) calibration.frameInterval;
+		final String frameIntervalUnit = calibration == null || "".equals(calibration.getTimeUnit()) ?
+				"" : calibration.getTimeUnit();
 
 		float[] phaseMapPixels = phaseMap(ip, false);
 		final FloatProcessor resultPhaseMap = new FloatProcessor(width, height, phaseMapPixels);
@@ -455,17 +491,20 @@ public class Phase_Map implements PlugInFilter {
 		resultPhaseMap.setLut(createLUT());
 		final ImageProcessor phaseMap = resultPhaseMap;
 
-		//phaseMap.resetMinAndMax();
 		new ImagePlus("Phase Map of " + imp.getTitle(), phaseMap).show();
 
 		if (plotWaveCounts) {
 			final float[] counts = getWaveCounts(phaseMapPixels, width, height);
-			final float[] x = range(0, counts.length);
-			new Plot("Wave counts of " + imp.getTitle(), "time", "wave count", x, counts).show();
+			final float[] x = range(0, counts.length, frameInterval);
+			new Plot("Wave counts of " + imp.getTitle(),
+					"time" + ("".equals(frameIntervalUnit) ? "" : (" (" + frameIntervalUnit + ")")),
+					"wave count", x, counts).show();
 		}
 
 		if (showProfileStack)
-			getProfileStack("Profile Stack  of " + imp.getTitle(), phaseMapPixels, width, height, anchorProfileStack, cutTailsFromProfileStack).show();
+			getProfileStack("Profile Stack  of " + imp.getTitle(),
+					phaseMapPixels, width, height, pixelSpacing, pixelSpacingUnit,
+					anchorProfileStack, cutTailsFromProfileStack).show();
 
 		if (showPhaseProfileMap) {
 			final FloatProcessor resultPhaseProfileMap = new FloatProcessor(width, height, phaseMap(ip, true));
