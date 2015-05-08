@@ -3,7 +3,6 @@ package sc.fiji.timelapse;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-
 import ij.gui.GenericDialog;
 import ij.gui.ImageCanvas;
 import ij.gui.Line;
@@ -11,16 +10,11 @@ import ij.gui.Overlay;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
-
 import ij.measure.ResultsTable;
-
 import ij.plugin.CanvasResizer;
 import ij.plugin.Straightener;
-
 import ij.plugin.filter.PlugInFilter;
-
 import ij.plugin.frame.RoiManager;
-
 import ij.process.FloatPolygon;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
@@ -28,16 +22,13 @@ import ij.process.ImageProcessor;
 import java.awt.Polygon;
 import java.awt.Scrollbar;
 import java.awt.TextField;
-
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-
 import java.lang.reflect.Field;
-
 import java.util.Hashtable;
 
 public class LOI_Interpolator implements PlugInFilter {
@@ -150,7 +141,8 @@ public class LOI_Interpolator implements PlugInFilter {
 
 	protected int getRois() {
 		rois = new PolygonRoi[image.getStackSize()];
-		Hashtable table = roiManager.getROIs();
+		@SuppressWarnings({ "unchecked", "deprecation" })
+		Hashtable<String, Roi> table = (Hashtable<String, Roi>) roiManager.getROIs();
 		int min = rois.length, max = -1;
 		for (Object key : table.keySet()) {
 			String label = (String)key;

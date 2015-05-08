@@ -360,8 +360,8 @@ public class PolygonRoiPublic extends PolygonRoi {
 				System.err.println(name1 + "(" + object1 + ") != " + name2 + "(" + object2 + ")");
 			return;
 		}
-		Class class1 = object1.getClass();
-		Class class2 = object2.getClass();
+		Class<?> class1 = object1.getClass();
+		Class<?> class2 = object2.getClass();
 		if (class1 == PolygonRoiPublic.class)
 			class1 = PolygonRoi.class;
 		if (class1 != class2)

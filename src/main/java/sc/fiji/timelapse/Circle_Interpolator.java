@@ -1,27 +1,20 @@
 package sc.fiji.timelapse;
 
 import fiji.statistics.RoiStatistics;
-
 import fiji.util.FloatArray;
-
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-
 import ij.gui.GenericDialog;
 import ij.gui.OvalRoi;
 import ij.gui.Plot;
 import ij.gui.Roi;
-
 import ij.measure.Calibration;
 import ij.measure.Measurements;
 import ij.measure.ResultsTable;
-
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.PlugInFilter;
-
 import ij.plugin.frame.RoiManager;
-
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
 
@@ -29,10 +22,8 @@ import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.Scrollbar;
 import java.awt.TextField;
-
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
-
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -94,7 +85,8 @@ public class Circle_Interpolator implements PlugInFilter {
 
 	int getRois() {
 		rois = new OvalRoi[image.getStackSize()];
-		Hashtable table = roiManager.getROIs();
+		@SuppressWarnings({ "unchecked", "deprecation" })
+		Hashtable<String, Roi> table = (Hashtable<String, Roi>) roiManager.getROIs();
 		int min = rois.length, max = -1;
 		for (Object key : table.keySet()) {
 			String label = (String)key;
