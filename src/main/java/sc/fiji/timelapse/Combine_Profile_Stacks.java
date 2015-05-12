@@ -143,6 +143,7 @@ public class Combine_Profile_Stacks implements PlugIn {
 				plot.addPoints(range(0, p[i].length, pixelSpacing), divide(p[i], pi2), Plot.LINE);
 			}
 			plot.setColor(Color.BLUE);
+			plot.setLineWidth(2);
 			plot.addPoints(range(0, median[t].length, pixelSpacing), divide(median[t], pi2), Plot.LINE);
 
 			final ImageProcessor ip = plot.getProcessor();
