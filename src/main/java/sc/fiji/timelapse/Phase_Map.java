@@ -26,29 +26,12 @@ public class Phase_Map implements PlugInFilter {
 
 	private double octaveNumber = 4, voicesPerOctave = 50;
 	private double gaussSigma = 2, x0 = 100, x1 = 400, sigma0 = 1, sigma1 = 1, subtractionPoint = 50;
-	private boolean useMirrorOutOfBoundsInWaveletTransform, plotWaveCounts,
-		showProfileStack, anchorProfileStack, cutTailsFromProfileStack, showPhaseProfileMap;
+	private boolean plotWaveCounts, showProfileStack, anchorProfileStack, cutTailsFromProfileStack, showPhaseProfileMap;
 
 	private ImagePlus imp;
 
 	private double phase(double[] data, int dataSize, double s, int tau) {
 		double wR = 0, wI = 0;
-
-		if (useMirrorOutOfBoundsInWaveletTransform) {
-			// tapering-off mirror out-of-bounds strategy
-			for (int i = Math.max(-30, -dataSize); i < 0; i++) {
-				double u = (i - tau) / s;
-				double decay = Math.exp(-u * u / 2);
-				double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-
-				// normalization unnecessary:
-				// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-				// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-
-				wR += data[-1 - i] * gaborR;
-				wI += data[-1 - i] * -gaborI;
-			}
-		}
 
 		for (int i = 0; i < dataSize; i++) {
 			double u = (i - tau) / s;
@@ -61,22 +44,6 @@ public class Phase_Map implements PlugInFilter {
 
 			wR += data[i] * gaborR;
 			wI += data[i] * -gaborI;
-		}
-
-		if (useMirrorOutOfBoundsInWaveletTransform) {
-			// tapering-off mirroring strategy
-			for (int i = 0; i < 30 && i < dataSize; i++) {
-				double u = (dataSize + i - tau) / s;
-				double decay = Math.exp(-u * u / 2);
-				double gaborR = Math.cos(6 * u) * decay, gaborI = Math.sin(6 * u) * decay;
-
-				// normalization unnecessary:
-				// gaborR /= Math.pow(Math.PI, 1.0 / 4);
-				// gaborI /= Math.pow(Math.PI, 1.0 / 4);
-
-				wR += data[dataSize - 1 - i] * gaborR;
-				wI += data[dataSize - 1 - i] * -gaborI;
-			}
 		}
 
 		// normalization unnecessary:
@@ -454,7 +421,6 @@ public class Phase_Map implements PlugInFilter {
 		gd.addCheckbox("Cut_tails_from_profile_stack i.e. skip spurious signal at tail", cutTailsFromProfileStack);
 		gd.addCheckbox("Show_phase_profile_map", showPhaseProfileMap);
 		gd.addNumericField("Subtraction_point", subtractionPoint, 0);
-		gd.addCheckbox("Use_mirror_in_wavelet_transform", useMirrorOutOfBoundsInWaveletTransform);
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return;
@@ -472,7 +438,6 @@ public class Phase_Map implements PlugInFilter {
 		cutTailsFromProfileStack = gd.getNextBoolean();
 		showPhaseProfileMap = gd.getNextBoolean();
 		subtractionPoint = gd.getNextNumber();
-		useMirrorOutOfBoundsInWaveletTransform = gd.getNextBoolean();
 
 		final int width = ip.getWidth(), height = ip.getHeight();
 		final Calibration calibration = imp.getCalibration();
