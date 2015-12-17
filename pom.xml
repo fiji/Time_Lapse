@@ -41,6 +41,10 @@
 		<tag>HEAD</tag>
 		<url>https://github.com/fiji/Time_Lapse</url>
 	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/fiji/Time_Lapse/issues</url>
+	</issueManagement>
 
 	<repositories>
 		<!-- NB: for project parent, in case of partial checkout -->
