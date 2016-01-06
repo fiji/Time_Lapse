@@ -15,6 +15,29 @@
 	<name>plugins/Time_Lapse.jar</name>
 	<description>Time Lapse tools written in conjunction with the work for "A Doppler effect in embryonic pattern formation", Soroldoni et al, Science 11 July 2014: Vol. 345 no. 6193 pp. 222-225, DOI: 10.1126/science.1253089</description>
 
+	<scm>
+		<connection>scm:git:git://github.com/fiji/Time_Lapse</connection>
+		<developerConnection>scm:git:git@github.com:fiji/Time_Lapse</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/fiji/Time_Lapse</url>
+	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/fiji/Time_Lapse/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://jenkins.imagej.net/job/Time_Lapse/</url>
+	</ciManagement>
+
+	<repositories>
+		<!-- NB: for project parent, in case of partial checkout -->
+		<repository>
+			<id>imagej.public</id>
+			<url>http://maven.imagej.net/content/groups/public</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>sc.fiji</groupId>
@@ -29,29 +52,4 @@
 			<artifactId>ij</artifactId>
 		</dependency>
 	</dependencies>
-
-	<ciManagement>
-		<system>Jenkins</system>
-		<url>http://jenkins.imagej.net/job/Time_Lapse/</url>
-	</ciManagement>
-
-	<scm>
-		<connection>scm:git:git://github.com/fiji/Time_Lapse</connection>
-		<developerConnection>scm:git:git@github.com:fiji/Time_Lapse</developerConnection>
-		<tag>HEAD</tag>
-		<url>https://github.com/fiji/Time_Lapse</url>
-	</scm>
-	<issueManagement>
-		<system>GitHub Issues</system>
-		<url>https://github.com/fiji/Time_Lapse/issues</url>
-	</issueManagement>
-
-	<repositories>
-		<!-- NB: for project parent, in case of partial checkout -->
-		<repository>
-			<id>imagej.public</id>
-			<url>http://maven.imagej.net/content/groups/public</url>
-		</repository>
-	</repositories>
-
 </project>
