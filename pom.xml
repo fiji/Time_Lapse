@@ -15,6 +15,29 @@
 	<name>plugins/Time_Lapse.jar</name>
 	<description>Time Lapse tools written in conjunction with the work for "A Doppler effect in embryonic pattern formation", Soroldoni et al, Science 11 July 2014: Vol. 345 no. 6193 pp. 222-225, DOI: 10.1126/science.1253089</description>
 
+	<developers>
+		<developer>
+			<id>ctrueden</id>
+			<name>Curtis Rueden</name>
+			<url>http://imagej.net/User:Rueden</url>
+			<roles>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Johannes Schindelin</name>
+			<url>http://imagej.net/User:Schindelin</url>
+			<roles><role>founder</role></roles>
+			<properties><id>dscho</id></properties>
+		</contributor>
+		<contributor>
+			<name>David Jörg</name>
+			<properties><id>djoerg</id></properties>
+		</contributor>
+	</contributors>
+
 	<scm>
 		<connection>scm:git:git://github.com/fiji/Time_Lapse</connection>
 		<developerConnection>scm:git:git@github.com:fiji/Time_Lapse</developerConnection>
