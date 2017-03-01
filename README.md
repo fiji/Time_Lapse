@@ -1,4 +1,4 @@
-[![](http://jenkins.imagej.net/job/Time_Lapse/lastBuild/badge/icon)](http://jenkins.imagej.net/job/Time_Lapse/)
+[![](https://travis-ci.org/fiji/Time_Lapse.svg?branch=master)](https://travis-ci.org/fiji/Time_Lapse)
 
 The Time Lapse tools were written in conjunction with the paper
 

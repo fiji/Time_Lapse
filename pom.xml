@@ -70,8 +70,8 @@
 		<url>https://github.com/fiji/Time_Lapse/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Jenkins</system>
-		<url>http://jenkins.imagej.net/job/Time_Lapse/</url>
+		<system>Travis CI</system>
+		<url>https://travis-ci.org/fiji/Time_Lapse</url>
 	</ciManagement>
 
 	<properties>
