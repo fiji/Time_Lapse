@@ -82,7 +82,6 @@
 	</properties>
 
 	<repositories>
-		<!-- NB: for project parent, in case of partial checkout -->
 		<repository>
 			<id>imagej.public</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
