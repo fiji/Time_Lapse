@@ -1,4 +1,4 @@
-[![](https://travis-ci.org/fiji/Time_Lapse.svg?branch=master)](https://travis-ci.org/fiji/Time_Lapse)
+[![](https://github.com/fiji/Time_Lapse/actions/workflows/build-main.yml/badge.svg)](https://github.com/fiji/Time_Lapse/actions/workflows/build-main.yml)
 
 The Time Lapse tools were written in conjunction with the paper
 
