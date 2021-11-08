@@ -60,7 +60,7 @@
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/fiji/Time_Lapse</connection>
+		<connection>scm:git:https://github.com/fiji/Time_Lapse</connection>
 		<developerConnection>scm:git:git@github.com:fiji/Time_Lapse</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/fiji/Time_Lapse</url>
