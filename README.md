@@ -1,4 +1,4 @@
-[![](https://github.com/fiji/Time_Lapse/actions/workflows/build-main.yml/badge.svg)](https://github.com/fiji/Time_Lapse/actions/workflows/build-main.yml)
+[![Build Status](https://github.com/fiji/Time_Lapse/actions/workflows/build.yml/badge.svg)](https://github.com/fiji/Time_Lapse/actions/workflows/build.yml)
 
 The Time Lapse tools were written in conjunction with the paper
 
